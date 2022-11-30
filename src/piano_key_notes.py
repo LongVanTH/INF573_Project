@@ -264,4 +264,45 @@ def pipeline(image, with_hull=False, show=False, kernel_size=5, threshold=5000, 
     group = groups_black_key(centroids, black_keys, image, show=show[5])
     notes = get_notes(centroids, black_keys, white_keys, group, image, show=show[6])
     return labels, black_keys, white_keys, n_labels, stats, centroids, group, notes, sobel
+
+def highlight_keys(image, labels, keys, color = [0,255,0], show=False):
+    """Highlight keys in an image
+    Parameters:
+        image: the image to highlight the key in
+        labels: the labels of the image
+        keys: the number of the key to highlight (can be a list)
+        color: color of the highlight (can be a list of colors)"""
+    new_image = image.copy()
+    if type(keys) == int:
+        keys = [keys]
+    if type(color[0]) != list and len(color) == 3:
+        color = [color]*len(keys)
+    for i in range(len(keys)):
+        new_image[labels == keys[i]] = color[i]
+    if show:
+        plt.figure(figsize=(16,10))
+        plt.imshow(new_image)
+        plt.show()
+    return new_image
+
+def highlight_notes(image, labels, notes, dict_notes, color = [0,255,0], show=False):
+    """Highlight keys from a list of notes in an image
+    Parameters:
+        image: the image to highlight the key in
+        labels: the labels of the image
+        keys: the number of the key to highlight (can be a list)
+        color: color of the highlight (can be a list of colors)"""
+    new_image = image.copy()
+    notes_reverse = {v: k for k, v in dict_notes.items()}
+    if type(notes) == str:
+        notes = [notes]
+    if type(color[0]) != list and len(color) == 3:
+        color = [color]*len(notes)
+    for i in range(len(notes)):
+        new_image[labels == notes_reverse[notes[i]]] = color[i]
+    if show:
+        plt.figure(figsize=(16,10))
+        plt.imshow(new_image)
+        plt.show()
+    return new_image
     
