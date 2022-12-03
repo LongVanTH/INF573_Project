@@ -52,28 +52,24 @@ def average_color(image, list_pixels):
 
 def highlight_keys(image_hand, image_diff, threshold, labels, centroids):
     new_image = image_hand.copy()
-    M = []
-    S = []
     for i in range(1,89):
         list_testing = get_list_pixels_faster_computation(image_hand, i, labels, centroids, above=10)
         color = np.mean(image_diff[list_testing[0], list_testing[1]], axis=0)
-        M.append(color)
-        S.append(np.std(image_diff[list_testing[0], list_testing[1]], axis=0))
         mean_color = np.mean(color)
         if mean_color > threshold:
             new_image[np.where(labels == i)] = [0,mean_color,0]
         elif mean_color > 50:
             new_image[np.where(labels == i)] = [mean_color,0,0]
-    return new_image, M, S
+    return new_image
 
-def pipeline_key_pressed(img, mask, labels, centroids, threshold_hand=30, threshold_confidence=150, show=False, shift=10):
+def pipeline_key_pressed(img, mask, labels, centroids, threshold_hand=30, above=10, threshold_confidence=150, show=False):
     image1 = get_hand_region(img, threshold_hand)
     image1 = cv2.cvtColor(image1.astype(np.uint8), cv2.COLOR_BGR2RGB)
-    image2 = img - mask + shift
-    image, M, S = highlight_keys(image1, image2, threshold_confidence, labels, centroids)
+    image2 = img - mask + 10
+    image = highlight_keys(image1, image2, threshold_confidence, labels, centroids)
     image = cv2.cvtColor(image.astype(np.uint8), cv2.COLOR_BGR2RGB)
     if show:
         plt.figure(figsize=(16,6))
         plt.imshow(image)
         plt.show()
-    return image, M, S
+    return image
