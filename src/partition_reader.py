@@ -279,21 +279,20 @@ def transform_to_beat(group_circles_center, index_mesure1, index_mesure2):
         group_beat.append(group_beat_i)
     return group_beat
 
-def beat_to_infos(beat, index_mesure1a, index_mesure1b, index_mesure2a, index_mesure2b):
-    # beat is a number between 1 and total_beats
-    if beat <= (len(index_mesure1a)-1) * 3:
+def beat_to_infos(beat, index_mesures, group_staff, imgs, groups_beat, note_names):
+    if beat <= (len(index_mesures[0])-1) * 3:
         beat_in_partition = beat-1
-        return (beat-1)%3+1, beat_in_partition, index_mesure1a, group_staff[:2], img, group_beat1[:2], note_names1[:2]
-    elif beat <= (len(index_mesure1a)-1) * 3 + (len(index_mesure1b)-1) * 3:
-        beat_in_partition = beat-1-(len(index_mesure1a)-1)*3
-        return (beat-1)%3+1, beat_in_partition, index_mesure1b, group_staff[2:4], img, group_beat1[2:4], note_names1[2:4]
-    elif beat <= (len(index_mesure1a)-1) * 3 + (len(index_mesure1b)-1) * 3 + (len(index_mesure2a)-1) * 3:
-        beat_in_partition = beat-1-(len(index_mesure1a)-1)*3-(len(index_mesure1b)-1)*3
-        return (beat-1)%3+1, beat_in_partition, index_mesure2a, group_staff[:2], img1, group_beat2[:2], note_names2[:2]
+        return (beat-1)%3+1, beat_in_partition, index_mesures[0], group_staff[:2], imgs[0], groups_beat[0][:2], note_names[0][:2]
+    elif beat <= sum([len(index_mesures[i])-1 for i in range(2)]) * 3:
+        beat_in_partition = beat-1-(len(index_mesures[0])-1)*3
+        return (beat-1)%3+1, beat_in_partition, index_mesures[1], group_staff[2:4], imgs[0], groups_beat[0][2:4], note_names[0][2:4]
+    elif beat <= sum([len(index_mesures[i])-1 for i in range(3)]) * 3:
+        beat_in_partition = beat-1-sum([len(index_mesures[i])-1 for i in range(2)])*3
+        return (beat-1)%3+1, beat_in_partition, index_mesures[2], group_staff[:2], imgs[1], groups_beat[1][:2], note_names[1][:2]
     else:
-        beat_in_partition = beat-1-(len(index_mesure1a)-1)*3-(len(index_mesure1b)-1)*3-(len(index_mesure2a)-1)*3
-        return (beat-1)%3+1, beat_in_partition, index_mesure2b, group_staff[2:4], img2, group_beat2[2:4], note_names2[2:4]
-    # return beat in mesure, beat in partition, index of mesure, group_staff, image, group_beat, note_names
+        beat_in_partition = beat-1-sum([len(index_mesures[i])-1 for i in range(3)])*3
+        return (beat-1)%3+1, beat_in_partition, index_mesures[3], group_staff[2:4], imgs[1], groups_beat[1][2:4], note_names[1][2:4]
+
 
 def notes_in_beat(note_names, group_beat, mesure, beat):
     notes = [[],[]]
