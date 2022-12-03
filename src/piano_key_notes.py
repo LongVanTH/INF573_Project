@@ -221,7 +221,7 @@ def get_notes(centroids, black_keys, white_keys, group, image, show=False):
     notes[do4] = notes[do4] + '4'
     octave = 4
     for i in range(do4+1, max(white_keys)+1):
-        if notes[i] == 'la':
+        if notes[i] == 'do':
             octave += 1
         if i in white_keys:
             notes[i] = notes[i] + str(octave)
