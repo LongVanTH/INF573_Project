@@ -235,7 +235,6 @@ def get_notes(centroids, black_keys, white_keys, group, image, show=False):
             notes[i] = notes[i] + str(octave)
         else:
             notes[i] = notes[i][:-1] + str(octave) + "#"
-
     if show:
         y_black = np.mean(centroids[black_keys,1])
         y_white = np.mean(centroids[white_keys,1])
@@ -304,5 +303,4 @@ def highlight_notes(image, labels, notes, dict_notes, color = [0,255,0], show=Fa
         plt.figure(figsize=(16,10))
         plt.imshow(new_image)
         plt.show()
-    return new_image
-    
+    return new_image  
