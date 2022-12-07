@@ -168,6 +168,9 @@ def find_real_black_center(img, center, show=False):
                 x, y = a, b
     if show:
         plt.figure(figsize=(16,6))
+        plt.imshow(img[center[1]-5:center[1]+5, center[0]-5:center[0]+5])
+        plt.show()
+        plt.figure(figsize=(16,6))
         plt.imshow(img[y-5:y+5, x-5:x+5])
         plt.show()
     return x, y
