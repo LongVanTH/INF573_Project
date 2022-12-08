@@ -1,10 +1,6 @@
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-#import src.basic_function_cap as bfc
-#import src.piano_key_notes as pkn
-#import ipywidgets as widgets
-#from ipywidgets import interact
 
 def dilate_img(img, kernel_size_x=3, kernel_size_y=3, iterations=1, show = False):
     kernel = np.ones((kernel_size_x, kernel_size_y), np.uint8)
@@ -25,8 +21,8 @@ def erode_img(img, kernel_size_x=3, kernel_size_y=3, iterations=1, show = False)
     return erosion
 
 def get_black_notes(img, show = False):
-    dilated = dilate_img(img, 8, 6, show = False)
-    eroded = erode_img(dilated, 8, 6, show = False)
+    dilated = dilate_img(img, 8, 6, show=show)
+    eroded = erode_img(dilated, 8, 6, show=show)
     gray = np.float32(cv2.cvtColor(eroded,cv2.COLOR_BGR2GRAY))
     sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize = 5)
     sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize = 5)
@@ -63,6 +59,9 @@ def get_white_notes(img, dp=1, minDist=20, param1=1000, param2=7, minRadius=6, m
                 cv2.circle(img_circles,(circles[0,i][0],circles[0,i][1]),circles[0,i][2],(0,255,0),2)
                 new_circles.append(circles[0,i])
     if show:
+        plt.figure(figsize=(16,6))
+        plt.imshow(inverse, cmap='gray')
+        plt.show()
         plt.figure(figsize=(16,6))
         plt.imshow(img_circles)
         plt.show()
@@ -207,21 +206,21 @@ def find_small_components(img, show=False):
         plt.show()
     return nb_components, output, stats, centroids
 
-def pipeline_notes_staff(img, group_staff, img2=None, show=False): # TODO: add show for each step
-    black_circles = get_black_notes(img)
+def pipeline_notes_staff(img, group_staff, img2=None, show=False):
+    black_circles = get_black_notes(img, show = show)
     if img2 is None:
-        white_circles = get_white_notes(img, dp=1, minDist=20, param1=1000, param2=7, minRadius=6, maxRadius=7)
+        white_circles = get_white_notes(img, dp=1, minDist=20, param1=1000, param2=7, minRadius=6, maxRadius=7, show = show)
     else:
-        white_circles1 = get_white_notes(img, dp=1, minDist=20, param1=1000, param2=6, minRadius=6, maxRadius=7)
-        white_circles2 = get_white_notes(img, dp=1, minDist=20, param1=1000, param2=7, minRadius=6, maxRadius=7)
+        white_circles1 = get_white_notes(img, dp=1, minDist=20, param1=1000, param2=6, minRadius=6, maxRadius=7, show = show)
+        white_circles2 = get_white_notes(img, dp=1, minDist=20, param1=1000, param2=7, minRadius=6, maxRadius=7, show = show)
         white_circles = np.concatenate((white_circles1, white_circles2), axis=1)
-    _, black_circles, white_circles = all_notes_circles(img, black_circles, white_circles, min_dist=30, show=False)
+    _, black_circles, white_circles = all_notes_circles(img, black_circles, white_circles, min_dist=30, show=show)
     black_circles_center = []
     for circle in black_circles[0]:
         black_circles_center.append(find_real_black_center(img, (circle[0], circle[1])))
     black_circles_center = np.array([black_circles_center])
     group_black_circles_center = group_circles_staff(black_circles_center, group_staff)
-    nb_components, output, stats, centroids = find_small_components(img, show=False)
+    nb_components, output, stats, centroids = find_small_components(img, show)
     white_circles_center = find_real_white_center(nb_components, stats, centroids)
     group_white_circles_center = group_circles_staff(white_circles_center, group_staff)
     group_circles_center = []
@@ -237,7 +236,7 @@ def circles_to_notes_names(group_circles_center, group_staff):
     return notes_names
 
 def pipeline_number_mesure(img, show=False):
-    dilated_img = dilate_img(img, kernel_size_x=50, kernel_size_y=1, iterations=1, show = show)
+    dilated_img = dilate_img(img, kernel_size_x=50, kernel_size_y=1, iterations=1, show=show)
     x_mean1 =  np.mean(np.mean(dilated_img[:175,], axis=2), axis=0) # first two staff
     index_mesure1 = [x for x in np.where(x_mean1 < 200)[0] if 30 < x < 940]
     x_mean2 =  np.mean(np.mean(dilated_img[175:,], axis=2), axis=0) # third and fourth staff
@@ -284,17 +283,17 @@ def transform_to_beat(group_circles_center, index_mesure1, index_mesure2):
 
 def beat_to_infos(beat, index_mesures, group_staff, imgs, groups_beat, note_names):
     if beat <= (len(index_mesures[0])-1) * 3:
-        beat_in_partition = beat-1
-        return (beat-1)%3+1, beat_in_partition, index_mesures[0], group_staff[:2], imgs[0], groups_beat[0][:2], note_names[0][:2]
+        beat_in_sheet = beat-1
+        return (beat-1)%3+1, beat_in_sheet, index_mesures[0], group_staff[:2], imgs[0], groups_beat[0][:2], note_names[0][:2]
     elif beat <= sum([len(index_mesures[i])-1 for i in range(2)]) * 3:
-        beat_in_partition = beat-1-(len(index_mesures[0])-1)*3
-        return (beat-1)%3+1, beat_in_partition, index_mesures[1], group_staff[2:4], imgs[0], groups_beat[0][2:4], note_names[0][2:4]
+        beat_in_sheet = beat-1-(len(index_mesures[0])-1)*3
+        return (beat-1)%3+1, beat_in_sheet, index_mesures[1], group_staff[2:4], imgs[0], groups_beat[0][2:4], note_names[0][2:4]
     elif beat <= sum([len(index_mesures[i])-1 for i in range(3)]) * 3:
-        beat_in_partition = beat-1-sum([len(index_mesures[i])-1 for i in range(2)])*3
-        return (beat-1)%3+1, beat_in_partition, index_mesures[2], group_staff[:2], imgs[1], groups_beat[1][:2], note_names[1][:2]
+        beat_in_sheet = beat-1-sum([len(index_mesures[i])-1 for i in range(2)])*3
+        return (beat-1)%3+1, beat_in_sheet, index_mesures[2], group_staff[:2], imgs[1], groups_beat[1][:2], note_names[1][:2]
     else:
-        beat_in_partition = beat-1-sum([len(index_mesures[i])-1 for i in range(3)])*3
-        return (beat-1)%3+1, beat_in_partition, index_mesures[3], group_staff[2:4], imgs[1], groups_beat[1][2:4], note_names[1][2:4]
+        beat_in_sheet = beat-1-sum([len(index_mesures[i])-1 for i in range(3)])*3
+        return (beat-1)%3+1, beat_in_sheet, index_mesures[3], group_staff[2:4], imgs[1], groups_beat[1][2:4], note_names[1][2:4]
 
 
 def notes_in_beat(note_names, group_beat, mesure, beat):
