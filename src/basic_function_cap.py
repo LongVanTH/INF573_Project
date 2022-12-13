@@ -21,11 +21,13 @@ def get_frame(cap, frame_number):
     else:
         return ret, None
 
-def crop_frame(frame, x, y, w, h, show=False):
+def crop_frame(frame, x, y, w, h, show=False, axis=True):
     cropped = frame[x:x+w, y:y+h, :]
     if show:
         plt.figure(figsize=(16,6))
         plt.imshow(cropped)
+        if not axis:
+            plt.axis('off')
         plt.show()
     return cropped
 

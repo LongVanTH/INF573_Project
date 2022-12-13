@@ -2,6 +2,7 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 
+
 def dilate_img(img, kernel_size_x=3, kernel_size_y=3, iterations=1, show = False):
     kernel = np.ones((kernel_size_x, kernel_size_y), np.uint8)
     dilation = cv2.dilate(img,kernel,iterations = iterations)
@@ -258,6 +259,15 @@ def highlight_beat(img, mesure, beat, index_mesure, group_staff): # group_staff 
     plt.figure(figsize=(16, 10))
     plt.imshow(new_img)
     plt.show()
+
+def window_highlight_beat(img, mesure, beat, index_mesure, group_staff): # group_staff = [group_staff1, group_staff2]
+    # we hightlight the zone between the two points of t
+    new_img = img.copy()
+    y_min, y_max = group_staff[0][0] - 20, group_staff[1][-1] + 20
+    length_mesure = index_mesure[mesure] - index_mesure[mesure-1] - 10
+    x_min = int(index_mesure[mesure-1] + length_mesure * (beat-1) / 3)
+    x_max = int(x_min + length_mesure / 3)
+    return x_min, x_max, y_min, y_max
     
 def transform_to_beat(group_circles_center, index_mesure1, index_mesure2):
     group_beat = []
@@ -295,7 +305,6 @@ def beat_to_infos(beat, index_mesures, group_staff, imgs, groups_beat, note_name
         beat_in_sheet = beat-1-sum([len(index_mesures[i])-1 for i in range(3)])*3
         return (beat-1)%3+1, beat_in_sheet, index_mesures[3], group_staff[2:4], imgs[1], groups_beat[1][2:4], note_names[1][2:4]
 
-
 def notes_in_beat(note_names, group_beat, mesure, beat):
     notes = [[],[]]
     for i in range(len(group_beat)):
@@ -303,3 +312,43 @@ def notes_in_beat(note_names, group_beat, mesure, beat):
             if group_beat[i][j][0] == mesure and group_beat[i][j][1] == beat:
                 notes[1-i].append(note_names[i][j])
     return notes
+
+def pipeline_sheet_reader(img,img1,img2):
+    lines_staff = dilate_img(img, kernel_size_x=1, kernel_size_y=15, iterations=1, show = False)
+    y_mean =  np.mean(np.mean(lines_staff, axis=2), axis=1)
+    index_lines_staff = np.where(y_mean < 200)[0]
+    group_staff = isolate_index(index_lines_staff)
+    
+    sheet1 = pipeline_notes_staff(img, group_staff, show=False)
+    index_mesure1a, index_mesure1b = pipeline_number_mesure(img, show=False)
+    group_beat1 = transform_to_beat(sheet1, index_mesure1a, index_mesure1b)
+    note_names1 = circles_to_notes_names(sheet1, group_staff)
+
+    sheet2 = pipeline_notes_staff(img1, group_staff, img2, show=False)
+    index_mesure2a, index_mesure2b = pipeline_number_mesure(img1, show=False)
+    group_beat2 = transform_to_beat(sheet2, index_mesure2a, index_mesure2b)
+    note_names2 = circles_to_notes_names(sheet2, group_staff)
+
+    index_mesures = [index_mesure1a, index_mesure1b, index_mesure2a, index_mesure2b]
+    groups_beat = [group_beat1, group_beat2]
+    notes_names = [note_names1, note_names2]
+    imgs = [img, img1]
+    total_mesures = sum([len(x)-1 for x in index_mesures])
+    total_beats = total_mesures * 3
+
+    return index_mesures, group_staff, imgs, groups_beat, notes_names, total_beats
+
+def pipeline_beat_reader(beat, index_mesures, group_staff, imgs, groups_beat, notes_names, highlight=True):
+    length = 0
+    for mes in index_mesures:
+        length += len(mes)*3-3
+    if beat > length or beat < 1 or not isinstance(beat, int):
+        print("Beat number must be an integer between 1 and " + str(length))
+        return
+    beat_in_mesure, beat_in_sheet, index_mesure, staff, image, group_beat, note_names = beat_to_infos(beat, index_mesures, group_staff, imgs, groups_beat, notes_names)
+    notes_at_beat = notes_in_beat(note_names, group_beat, beat_in_sheet//3+1, beat_in_mesure)
+    if highlight:
+        print(notes_at_beat)
+        highlight_beat(image, beat_in_sheet//3+1, beat_in_mesure, index_mesure, staff)
+    else:
+        return notes_at_beat, window_highlight_beat(image, beat_in_sheet//3+1, beat_in_mesure, index_mesure, staff)

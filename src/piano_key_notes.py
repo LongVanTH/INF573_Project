@@ -2,9 +2,8 @@ import cv2
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy.spatial import ConvexHull, Delaunay
-from tqdm.notebook import tqdm
 
-def get_sobel(image, kernel_size=5, threshold=5000, kx=1, ky=1, crop=5, show=False):
+def get_sobel(image, kernel_size=5, threshold=5000, kx=1, ky=1, crop=5, show=False, axis=False):
     """Parameters:
     image: input image (RGB or grayscale)
     kernel_size: size of the Sobel kernel
@@ -37,10 +36,12 @@ def get_sobel(image, kernel_size=5, threshold=5000, kx=1, ky=1, crop=5, show=Fal
     if show:
         plt.figure(figsize=(16,10))
         plt.imshow(sobel, cmap='gray')
+        if not axis:
+            plt.axis('off')
         plt.show()
     return sobel
 
-def get_connected_components(image, min_area=800, max_width=100, show=False):
+def get_connected_components(image, min_area=800, max_width=100, show=False, axis=False):
     """Parameters:
     image: input grayscale image (uint8)
     min_area: minimum area of the connected components
@@ -58,14 +59,16 @@ def get_connected_components(image, min_area=800, max_width=100, show=False):
     labels[labels > 0] = 255
     labels = labels.astype(np.uint8)
     n_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(labels)
-    print('Number of connected components:', n_labels-1) # we don't count the background
+    #print('Number of connected components:', n_labels-1) # we don't count the background
     if show:
         plt.figure(figsize=(16,10))
         plt.imshow(labels)
+        if not axis:
+            plt.axis('off')
         plt.show()
     return n_labels, labels, stats, centroids
 
-def reassign_labels(labels, stats, centroids, show=False):
+def reassign_labels(labels, stats, centroids, show=False, axis=False):
     """Reassign the labels of the connected components so that they are ordered from left to right.
     Parameters:
     labels: labels of the connected components
@@ -89,10 +92,12 @@ def reassign_labels(labels, stats, centroids, show=False):
     if show:
         plt.figure(figsize=(16,10))
         plt.imshow(new_labels)
+        if not axis:
+            plt.axis('off')
         plt.show()
     return new_labels, new_stats, new_centroids
 
-def get_black_keys(labels, centroids, show=False):
+def get_black_keys(labels, centroids, show=False, axis=False):
     """Parameters:
     labels: output of cv2.connectedComponentsWithStats
     centroids: output of cv2.connectedComponentsWithStats
@@ -118,6 +123,8 @@ def get_black_keys(labels, centroids, show=False):
         plt.imshow(labels) #, cmap='jet')
         plt.scatter(centroids[black_keys,0], centroids[black_keys,1], c='r')
         plt.scatter(centroids[white_keys,0], centroids[white_keys,1], c='b')
+        if not axis:
+            plt.axis('off')
         plt.show()
     return black_keys, white_keys
 
@@ -156,19 +163,21 @@ def fill_hull(labels, key_number):
     return new_labels
 
 # fill the convex hull of all black keys with white
-def fill_all_hulls(labels, centroids, black_keys, white_keys, show=False):
+def fill_all_hulls(labels, centroids, black_keys, white_keys, show=False, axis=False):
     new_labels = labels.copy()
-    for key in tqdm(black_keys):
+    for key in black_keys:
         new_labels = fill_hull(new_labels, key)
     if show:
         plt.figure(figsize=(16,10))
         plt.imshow(new_labels)
         plt.scatter(centroids[black_keys,0], centroids[black_keys,1], c='r')
         plt.scatter(centroids[white_keys,0], centroids[white_keys,1], c='b')
+        if not axis:
+            plt.axis('off')
         plt.show()
     return new_labels
 
-def groups_black_key(centroids, black_keys, image, show = False):
+def groups_black_key(centroids, black_keys, image, show = False, axis=False):
     """Return the groups of black keys (groups of 3 or 2)"""
     c = centroids[black_keys,0]
     c = np.diff(c)
@@ -187,10 +196,12 @@ def groups_black_key(centroids, black_keys, image, show = False):
         plt.figure(figsize=(16,10))
         plt.imshow(image)
         plt.scatter(centroids[black_keys,0], centroids[black_keys,1], c=group)
+        if not axis:
+            plt.axis('off')
         plt.show()
     return group
 
-def get_notes(centroids, black_keys, white_keys, group, image, show=False):
+def get_notes(centroids, black_keys, white_keys, group, image, show=False, axis=False):
     """Return the notes of the piano (dict)"""
     notes = {}
     list_notes = ['do', 'ré', 'mi', 'fa', 'sol', 'la', 'si']
@@ -248,20 +259,24 @@ def get_notes(centroids, black_keys, white_keys, group, image, show=False):
             else:
                 y = y_white
             plt.text(centroids[key,0], y, notes[key], fontsize = 10, color='r')
+        if not axis:
+            plt.axis('off')
         plt.show()
     return notes
 
-def pipeline(image, with_hull=False, show=False, kernel_size=5, threshold=5000, kx=10, ky=1, crop=5, min_area=800, max_width=100):
+def pipeline(image, with_hull=False, kernel_size=5, threshold=5000, kx=10, ky=1, crop=5, min_area=800, max_width=100, show=False, axis=False):
     if type(show) == bool:
         show = [show]*7
-    sobel = get_sobel(image, kernel_size=kernel_size, threshold=threshold, kx=kx, ky=ky, crop=crop, show=show[0])
-    n_labels, labels, stats, centroids = get_connected_components(sobel, min_area=min_area, max_width=max_width, show=show[1])
-    labels, stats, centroids = reassign_labels(labels, stats, centroids, show=show[2])
-    black_keys, white_keys = get_black_keys(labels, centroids, show=show[3])
+    if type(axis) == bool:
+        axis = [axis]*7
+    sobel = get_sobel(image, kernel_size=kernel_size, threshold=threshold, kx=kx, ky=ky, crop=crop, show=show[0], axis=axis[0])
+    n_labels, labels, stats, centroids = get_connected_components(sobel, min_area=min_area, max_width=max_width, show=show[1], axis=axis[1])
+    labels, stats, centroids = reassign_labels(labels, stats, centroids, show=show[2], axis=axis[2])
+    black_keys, white_keys = get_black_keys(labels, centroids, show=show[3], axis=axis[3])
     if with_hull:
-        labels = fill_all_hulls(labels, centroids, black_keys, white_keys, show=show[4])
-    group = groups_black_key(centroids, black_keys, image, show=show[5])
-    notes = get_notes(centroids, black_keys, white_keys, group, image, show=show[6])
+        labels = fill_all_hulls(labels, centroids, black_keys, white_keys, show=show[4], axis=axis[4])
+    group = groups_black_key(centroids, black_keys, image, show=show[5], axis=axis[5])
+    notes = get_notes(centroids, black_keys, white_keys, group, image, show=show[6], axis=axis[6])
     return labels, black_keys, white_keys, n_labels, stats, centroids, group, notes, sobel
 
 def highlight_keys(image, labels, keys, color = [0,255,0], show=False):
